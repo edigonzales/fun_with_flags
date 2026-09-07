@@ -12,8 +12,12 @@ liegt nur in einer privaten Liste außerhalb dieses Repos.
 
 ## Spielen
 
-`app/index.html` direkt im Browser öffnen oder den Inhalt von `app/`
-auf GitHub Pages veröffentlichen. Ablauf:
+`app/index.html` direkt im Browser öffnen oder über GitHub Pages
+spielen (`.github/workflows/pages.yml` veröffentlicht bei jedem Push
+auf `main` den Inhalt von `app/`). Einmalig nötig: in den
+Repository-Einstellungen unter **Settings → Pages → Build and
+deployment** als Source **„GitHub Actions"** auswählen. Danach ist die
+App unter `https://<nutzer>.github.io/fun_with_flags/` erreichbar.
 
 1. Stufe wählen (Leicht / Mittel / Schwer) und Modus:
    „10 zufällige“ (10 zufällige Flaggen aus der Stufe, blauer Knopf)
