@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fun with Flags</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>Fun with Flags</h1>
+  </header>
+
+  <button id="fullscreen-btn" class="btn-fullscreen" type="button"
+          title="Vollbild aktivieren (Esc beendet)"
+          aria-label="Vollbild aktivieren">⛶</button>
+
+  <main>
+    <!-- Start: Stufenwahl & Statistik -->
+    <section id="view-start" class="view">
+      <p class="intro">Wähle eine Stufe und einen Modus:</p>
+      <div id="level-buttons" class="level-grid"></div>
+
+      <section class="stats-panel">
+        <h2>Statistik</h2>
+
+        <h3 class="stats-group-title">10er-Runden</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Stufe</th>
+              <th>Spiele</th>
+              <th>Antworten</th>
+              <th>Richtig</th>
+              <th>Quote</th>
+              <th>Beste Serie</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body-ten"></tbody>
+        </table>
+
+        <h3 class="stats-group-title">Komplettes Deck</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Stufe</th>
+              <th>Spiele</th>
+              <th>Antworten</th>
+              <th>Richtig</th>
+              <th>Quote</th>
+              <th>Beste Serie</th>
+            </tr>
+          </thead>
+          <tbody id="stats-body-deck"></tbody>
+        </table>
+
+        <button id="reset-stats" class="btn-link" type="button">Statistik zurücksetzen</button>
+      </section>
+    </section>
+
+    <!-- Quiz -->
+    <section id="view-quiz" class="view" hidden>
+      <div class="quiz-top">
+        <span id="quiz-level"></span>
+        <span id="quiz-progress"></span>
+        <button id="quit" class="btn-link" type="button">Abbrechen</button>
+      </div>
+      <div class="flag-card">
+        <img id="flag-img" alt="">
+        <span id="flag-number" class="flag-number"></span>
+      </div>
+      <div class="answer-buttons">
+        <button id="btn-wrong" class="btn btn-wrong" type="button">Falsch</button>
+        <button id="btn-right" class="btn btn-right" type="button">Richtig</button>
+      </div>
+      <div class="quiz-footer">
+        <button id="undo" class="btn-link" type="button" hidden>Letzte Eingabe korrigieren</button>
+        <p class="hint">Tastatur: <kbd>R</kbd> richtig · <kbd>F</kbd> falsch</p>
+      </div>
+    </section>
+
+    <!-- Ergebnis -->
+    <section id="view-done" class="view" hidden>
+      <h2 id="done-title">Geschafft!</h2>
+      <p id="done-summary" class="done-summary"></p>
+      <div class="answer-buttons">
+        <button id="again" class="btn btn-right" type="button">Nochmal</button>
+        <button id="back-to-start" class="btn btn-secondary" type="button">Zur Auswahl</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="decks.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "fun-with-flags-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lokale Hilfsskripte für Fun with Flags (nur auf dem eigenen Rechner, niemals veröffentlichen)",
+  "dependencies": {
+    "pngjs": "^7.0.0",
+    "xlsx": "^0.18.5"
+  }
+}

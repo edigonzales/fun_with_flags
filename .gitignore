@@ -141,3 +141,12 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# --- Fun with Flags: private Daten (NIEMALS veröffentlichen) ---
+# Enthalten die Zuordnung Flaggen-Nummer -> Ländername
+private/
+tools/report.csv
+tools/*.csv
+tools/*.xlsx
+tools/*.xls
+.DS_Store
