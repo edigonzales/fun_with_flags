@@ -277,6 +277,58 @@ tbody tr:last-child td {
   user-select: none;
 }
 
+/* ---------- Antwort-Optionen (5 Ländernamen) ---------- */
+
+.choice-grid {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 560px) {
+  .choice-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.choice {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.1s, border-color 0.1s, color 0.1s, opacity 0.1s;
+}
+
+.choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #eff6ff;
+}
+
+.choice:disabled {
+  cursor: default;
+}
+
+.choice:disabled:not(.correct):not(.wrong) {
+  opacity: 0.5;
+}
+
+.choice.correct {
+  background: var(--right);
+  border-color: var(--right);
+  color: #fff;
+}
+
+.choice.wrong {
+  background: var(--wrong);
+  border-color: var(--wrong);
+  color: #fff;
+}
+
 .answer-buttons {
   display: flex;
   gap: 0.75rem;
@@ -286,10 +338,6 @@ tbody tr:last-child td {
 
 .btn-right {
   background: var(--right);
-}
-
-.btn-wrong {
-  background: var(--wrong);
 }
 
 .btn-secondary {

@@ -22,15 +22,18 @@
  * Verwendung:  node tools/assign_difficulty.mjs
  */
 
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import pngjs from 'pngjs';
 
-const { PNG } = pngjs;
+import {
+  loadFlagImages,
+  allPairDistances,
+  SIMILARITY_THRESHOLD,
+  REVIEW_THRESHOLD,
+} from './lib/flag-similarity.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FLAGS_DIR = path.join(ROOT, 'app', 'flags');
 const TEMPLATE_PATH = path.join(ROOT, 'private', 'flaggen-vorlage.csv');
 
 const USER_AGENT = 'FunWithFlags/1.0 (privates Lernspiel; lokaler Download)';
@@ -39,10 +42,6 @@ const REQUEST_DELAY_MS = 200;
 // Einwohnerzahl-Schwellen für die Basis-Einstufung
 const POP_EASY = 20_000_000;
 const POP_MEDIUM = 1_000_000;
-
-// Ab dieser Distanz (mittlere RGB-Differenz, 0..1) gilt eine Flagge
-// als "sehr ähnlich" zu einer anderen.
-const SIMILARITY_THRESHOLD = 0.13;
 
 // Schweiz und Nachbarn (Deutschland, Frankreich, Italien, Österreich,
 // Liechtenstein) – für eine Schweizer Spielerin alle sehr vertraut
@@ -160,75 +159,9 @@ async function loadCountries() {
 }
 
 /**
- * Profil-Merkmale: mittlere RGB-Farbe pro Spalte (200 Punkte) und pro
- * Zeile (140 Punkte), jeweils relativ zur Bildgröße abgetastet.
- * Erfasst horizontale UND vertikale Streifenstruktur exakt.
+ * Profil-Merkmale und paarweise Flaggen-Distanzen liegen in
+ * lib/flag-similarity.mjs (auch von generate_choices.mjs genutzt).
  */
-function flagProfiles(png) {
-  const { width: W, height: H, data } = png;
-  const colProf = [];
-  const rowProf = [];
-  for (let k = 0; k < 200; k++) {
-    const x = Math.min(W - 1, Math.round((k * W) / 200));
-    let sr = 0;
-    let sg = 0;
-    let sb = 0;
-    for (let y = 0; y < H; y++) {
-      const i = (y * W + x) * 4;
-      sr += data[i];
-      sg += data[i + 1];
-      sb += data[i + 2];
-    }
-    colProf.push(sr / H / 255, sg / H / 255, sb / H / 255);
-  }
-  for (let k = 0; k < 140; k++) {
-    const y = Math.min(H - 1, Math.round((k * H) / 140));
-    let sr = 0;
-    let sg = 0;
-    let sb = 0;
-    for (let x = 0; x < W; x++) {
-      const i = (y * W + x) * 4;
-      sr += data[i];
-      sg += data[i + 1];
-      sb += data[i + 2];
-    }
-    rowProf.push(sr / W / 255, sg / W / 255, sb / W / 255);
-  }
-  return { colProf, rowProf };
-}
-
-/** Flache RGB-Triple-Folge umkehren (Reihenfolge, nicht Kanäle!). */
-function reverseTriples(f) {
-  const out = new Array(f.length);
-  for (let i = 0; i < f.length; i += 3) {
-    out[f.length - 3 - i] = f[i];
-    out[f.length - 2 - i] = f[i + 1];
-    out[f.length - 1 - i] = f[i + 2];
-  }
-  return out;
-}
-
-/**
- * Distanz zweier Flaggen-Profile (0..1). Varianten:
- *  none = direkt | v = vertikal gespiegelt | h = horizontal gespiegelt
- */
-function pairDist(fa, fb, flip) {
-  const colsB = flip === 'h' ? reverseTriples(fb.colProf) : fb.colProf;
-  const rowsB = flip === 'v' ? reverseTriples(fb.rowProf) : fb.rowProf;
-  let s = 0;
-  let n = 0;
-  for (let i = 0; i < fa.colProf.length; i++) {
-    const d = fa.colProf[i] - colsB[i];
-    s += d * d;
-    n++;
-  }
-  for (let i = 0; i < fa.rowProf.length; i++) {
-    const d = fa.rowProf[i] - rowsB[i];
-    s += d * d;
-    n++;
-  }
-  return Math.sqrt(s / n);
-}
 
 /** Kleinster CSV-Parser (wie in den anderen Tools). */
 function parseCsv(text) {
@@ -283,17 +216,6 @@ function csvLine(fields) {
   );
 }
 
-async function loadFlagImages(numbers) {
-  const profiles = new Map();
-  for (const num of numbers) {
-    const file = path.join(FLAGS_DIR, `${String(num).padStart(3, '0')}.png`);
-    const buf = await readFile(file);
-    const png = PNG.sync.read(buf);
-    profiles.set(num, flagProfiles(png));
-  }
-  return profiles;
-}
-
 async function main() {
   const countries = await loadCountries();
   console.log(`${countries.length} Länder gefunden.`);
@@ -328,25 +250,13 @@ async function main() {
   console.log('Analysiere Flaggen-Ähnlichkeiten …');
   const numbers = countries.map((_, i) => i + 1);
   const profiles = await loadFlagImages(numbers);
+  const pairs = allPairDistances(numbers, profiles);
   const similarPairs = []; // gezählt (< Schwelle)
-  const reviewPairs = []; // alle < 0.16, zur Ansicht
-  for (let a = 0; a < numbers.length; a++) {
-    for (let b = a + 1; b < numbers.length; b++) {
-      const na = numbers[a];
-      const nb = numbers[b];
-      const fa = profiles.get(na);
-      const fb = profiles.get(nb);
-      const d = Math.min(
-        pairDist(fa, fb, 'none'),
-        pairDist(fa, fb, 'v'),
-        pairDist(fa, fb, 'h'),
-      );
-      if (d < SIMILARITY_THRESHOLD) similarPairs.push([na, nb, d]);
-      if (d < 0.16) reviewPairs.push([na, nb, d]);
-    }
+  const reviewPairs = []; // alle < Review-Schwelle, zur Ansicht
+  for (const { a, b, d } of pairs) {
+    if (d < SIMILARITY_THRESHOLD) similarPairs.push([a, b, d]);
+    if (d < REVIEW_THRESHOLD) reviewPairs.push([a, b, d]);
   }
-  similarPairs.sort((x, y) => x[2] - y[2]);
-  reviewPairs.sort((x, y) => x[2] - y[2]);
   const confusable = new Set();
   for (const [a, b] of similarPairs) {
     confusable.add(a);
@@ -423,7 +333,7 @@ async function main() {
     );
   }
   console.log('');
-  console.log(`Knapp über der Schwelle (${SIMILARITY_THRESHOLD} bis 0.16, zählen NICHT):`);
+  console.log(`Knapp über der Schwelle (${SIMILARITY_THRESHOLD} bis ${REVIEW_THRESHOLD}, zählen NICHT):`);
   for (const [a, b, d] of reviewPairs) {
     if (d >= SIMILARITY_THRESHOLD) {
       console.log(

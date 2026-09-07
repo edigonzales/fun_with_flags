@@ -1,6 +1,8 @@
 /**
  * app.js – Spiel-Logik für "Fun with Flags".
- * Kennt absichtlich KEINE Ländernamen, nur Nummern (siehe decks.js).
+ * Zeigt je Flagge 5 Ländernamen zur Auswahl (siehe choices.js),
+ * genau einer ist richtig. Klick auf einen Namen markiert die Antwort
+ * (grün = richtig, rot = falsch); "Weiter" bringt zur nächsten Flagge.
  *
  * Modi:  "Komplettes Deck" (alle Flaggen einer Stufe, gemischt)
  *        "10er-Runde"      (10 zufällige Flaggen einer Stufe)
@@ -11,6 +13,7 @@
   const LEVEL_NAMES = { 1: 'Leicht', 2: 'Mittel', 3: 'Schwer' };
   const LEVEL_ORDER = [1, 2, 3];
   const DECKS = window.DECKS || {};
+  const CHOICES = window.CHOICES || {};
   const STORAGE_KEY = 'funwithflags.stats.v1';
   const TEN_SIZE = 10;
 
@@ -28,8 +31,8 @@
   const flagNumber = document.getElementById('flag-number');
   const quizLevel = document.getElementById('quiz-level');
   const quizProgress = document.getElementById('quiz-progress');
-  const btnRight = document.getElementById('btn-right');
-  const btnWrong = document.getElementById('btn-wrong');
+  const choicesEl = document.getElementById('choices');
+  const btnNext = document.getElementById('btn-next');
   const btnQuit = document.getElementById('quit');
   const undoLink = document.getElementById('undo');
   const doneTitle = document.getElementById('done-title');
@@ -100,7 +103,7 @@
 
   // ---------- Zustand des laufenden Spiels ----------
   // run: { mode: 'deck'|'ten', level, order: [num...], index,
-  //        history: [{num, correct}], streak, bestStreak }
+  //        history: [{num, correct}], streak, bestStreak, answered }
   let run = null;
   let lastStart = null; // { level, mode }
 
@@ -209,12 +212,12 @@
     if (order.length === 0) return;
     if (mode === 'ten') order = order.slice(0, Math.min(TEN_SIZE, order.length));
     lastStart = { level, mode };
-    run = { mode, level, order, index: 0, history: [], streak: 0, bestStreak: 0 };
+    run = { mode, level, order, index: 0, history: [], streak: 0, bestStreak: 0, answered: false };
     showView('quiz');
-    renderFlag();
+    renderQuestion();
   }
 
-  function renderFlag() {
+  function renderQuestion() {
     const num = run.order[run.index];
     const numStr = pad3(num);
     flagImg.src = `flags/${numStr}.png`;
@@ -224,6 +227,60 @@
       LEVEL_NAMES[run.level] + (run.mode === 'ten' ? ' · 10er-Runde' : ' · komplettes Deck');
     quizProgress.textContent = `${run.index + 1} / ${run.order.length}`;
     undoLink.hidden = run.history.length === 0;
+    run.answered = false;
+    btnNext.hidden = true;
+    renderChoices(num);
+  }
+
+  /** Rendert die 5 gemischten Antwort-Buttons für eine Flaggen-Nummer. */
+  function renderChoices(num) {
+    choicesEl.innerHTML = '';
+    const options = CHOICES[num];
+    if (!options || options.length === 0) {
+      // Defensiv-Fallback: Frage ohne Optionen überspringbar machen
+      // (zählt nicht in der Statistik, da kein History-Eintrag entsteht)
+      const note = document.createElement('p');
+      note.className = 'hint';
+      note.textContent = `Keine Antwort-Optionen für Nr. ${pad3(num)} – bitte choices.js prüfen.`;
+      choicesEl.appendChild(note);
+      run.answered = true;
+      btnNext.hidden = false;
+      return;
+    }
+    const correctName = options[0];
+    for (const { name } of shuffled(options.map((name) => ({ name })))) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'choice';
+      btn.textContent = name;
+      btn.addEventListener('click', () => pickChoice(btn, name, correctName));
+      choicesEl.appendChild(btn);
+    }
+  }
+
+  /** Wählt eine Antwort aus und markiert richtig/falsch. */
+  function pickChoice(btn, name, correctName) {
+    if (!run || run.answered || run.index >= run.order.length) return;
+    run.answered = true;
+    const correct = name === correctName;
+    run.history.push({ num: run.order[run.index], correct });
+    recomputeStreak();
+    for (const el of choicesEl.children) {
+      el.disabled = true;
+      if (el.textContent === correctName) el.classList.add('correct');
+      else if (el === btn) el.classList.add('wrong');
+    }
+    undoLink.hidden = run.history.length === 0;
+    btnNext.hidden = false;
+    btnNext.focus();
+  }
+
+  /** Weiter zur nächsten Frage (oder zur Auswertung). */
+  function next() {
+    if (!run || run.index >= run.order.length) return;
+    run.index++;
+    if (run.index >= run.order.length) finishRun();
+    else renderQuestion();
   }
 
   function recomputeStreak() {
@@ -237,21 +294,15 @@
     run.bestStreak = best;
   }
 
-  function answer(correct) {
-    if (!run || run.index >= run.order.length) return;
-    run.history.push({ num: run.order[run.index], correct });
-    recomputeStreak();
-    run.index++;
-    if (run.index >= run.order.length) finishRun();
-    else renderFlag();
-  }
-
   function undo() {
     if (!run || run.history.length === 0) return;
+    // Aktuelle Frage bereits beantwortet -> Antwort zurücknehmen;
+    // sonst (auch bei übersprungener Frage) -> zur vorherigen Frage.
+    const answeredCurrent = run.history.length === run.index + 1;
     run.history.pop();
-    run.index--;
+    if (!answeredCurrent) run.index--;
     recomputeStreak();
-    renderFlag();
+    renderQuestion();
   }
 
   function finishRun() {
@@ -324,8 +375,7 @@
   }
 
   // ---------- Ereignisse ----------
-  btnRight.addEventListener('click', () => answer(true));
-  btnWrong.addEventListener('click', () => answer(false));
+  btnNext.addEventListener('click', next);
   undoLink.addEventListener('click', undo);
   btnQuit.addEventListener('click', quitRun);
   btnAgain.addEventListener('click', () => {
@@ -344,13 +394,19 @@
 
   document.addEventListener('keydown', (event) => {
     if (views.quiz.hidden || event.ctrlKey || event.metaKey || event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (key === 'r' || key === 'ArrowRight') {
+    if (event.key === 'Enter' || event.key === 'ArrowRight') {
+      if (!btnNext.hidden) {
+        event.preventDefault();
+        next();
+      }
+      return;
+    }
+    const idx = '12345'.indexOf(event.key);
+    if (idx < 0 || (run && run.answered)) return;
+    const btn = choicesEl.children[idx];
+    if (btn && btn.tagName === 'BUTTON') {
       event.preventDefault();
-      answer(true);
-    } else if (key === 'f' || key === 'ArrowLeft') {
-      event.preventDefault();
-      answer(false);
+      btn.click();
     }
   });
 

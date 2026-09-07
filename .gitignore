@@ -142,8 +142,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-# --- Fun with Flags: private Daten (NIEMALS veröffentlichen) ---
-# Enthalten die Zuordnung Flaggen-Nummer -> Ländername
+# --- Fun with Flags: Arbeitsdaten zur Listen-Pflege (nicht versionieren) ---
+# Quellen für decks.js und choices.js; die Ländernamen selbst stehen
+# (bewusst) in app/choices.js und werden mitveröffentlicht
 private/
 tools/report.csv
 tools/*.csv

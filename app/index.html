@@ -69,13 +69,13 @@
         <img id="flag-img" alt="">
         <span id="flag-number" class="flag-number"></span>
       </div>
+      <div id="choices" class="choice-grid"></div>
       <div class="answer-buttons">
-        <button id="btn-wrong" class="btn btn-wrong" type="button">Falsch</button>
-        <button id="btn-right" class="btn btn-right" type="button">Richtig</button>
+        <button id="btn-next" class="btn btn-right" type="button" hidden>Weiter</button>
       </div>
       <div class="quiz-footer">
         <button id="undo" class="btn-link" type="button" hidden>Letzte Eingabe korrigieren</button>
-        <p class="hint">Tastatur: <kbd>R</kbd> richtig · <kbd>F</kbd> falsch</p>
+        <p class="hint">Tastatur: <kbd>1</kbd>–<kbd>5</kbd> antworten · <kbd>Enter</kbd> weiter</p>
       </div>
     </section>
 
@@ -91,6 +91,7 @@
   </main>
 
   <script src="decks.js"></script>
+  <script src="choices.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
